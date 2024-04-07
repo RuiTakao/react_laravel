@@ -17,9 +17,9 @@ import { ProfileImageModal } from "./ProfileImageModal"
 import { memo, useCallback, useEffect, useState } from "react";
 import axios from "axios";
 
-export const ProfileModal = memo(props => {
+export const ProfileModal = props => {
 
-    const { isOpen, onClose, data } = props;
+    const { isOpen, onClose, data, getProfile, image } = props;
 
     if (isOpen) {
 
@@ -45,10 +45,10 @@ export const ProfileModal = memo(props => {
         // アップロードした画像
         const [base64Images, setBase64Images] = useState("")
         // 表示用
-        const [viewImage, setViewImage] = useState(`/dev/react_laravel/public/storage/img/image.png`)
+        const [viewImage, setViewImage] = useState(image)
         // サーバーに送る画像の情報
         const [canvasData, setCanvasData] = useState("")
-        
+
         // テキスト入力項目取得処理
         const [name, setName] = useState(data.name);
         const [work, setWork] = useState(data.work);
@@ -57,6 +57,36 @@ export const ProfileModal = memo(props => {
         const onChangeInputName = e => setName(e.target.value);
         const onChangeInputWork = e => setWork(e.target.value);
         const onChangeInputprofileText = e => setProfileText(e.target.value);
+
+        // DBデータ更新処理
+        const onClickUpdateProfile = () => {
+            const base64 = canvasData.toDataURL('image/png')
+            const bin = atob(base64.split(",")[1])
+            const buffer = new Uint8Array(bin.length)
+            for (var i = 0; i < bin.length; i++) {
+                buffer[i] = bin.charCodeAt(i);
+            }
+            // Blobを作成
+            var blob = new Blob([buffer.buffer], {
+                type: 'image/png'
+            });
+
+            const date = new Date();
+
+            const data = new FormData();
+            data.append('name', name)
+            data.append('work', work)
+            data.append('profile_text', profileText)
+            data.append('saveImage', blob, `${date.getSeconds()}.png`)
+
+            axios.post('/dev/react_laravel/public/api/profile', data, {
+                'enctype': 'multipart/form-data'
+            }).then(res => {
+                console.log(res)
+                getProfile()
+                onClose()
+            })
+        }
 
         return (
             <>
@@ -84,7 +114,7 @@ export const ProfileModal = memo(props => {
 
                         <Flex mt={8} justify={"space-between"} align={"center"}>
                             <Button onClick={onClose}>キャンセル</Button>
-                            {/* <Button onClick={onClickUpdateProfile} bg="teal.400" color="white">変更を保存</Button> */}
+                            <Button onClick={onClickUpdateProfile} bg="teal.400" color="white">変更を保存</Button>
                         </Flex>
                     </ModalContent>
                 </Modal>
@@ -92,4 +122,4 @@ export const ProfileModal = memo(props => {
             </>
         )
     }
-})
+}
